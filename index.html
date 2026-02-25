@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>cstrike - Xtreme V6</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; }
+        #game-container { width: 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        canvas { width: 100%; height: 100%; background: #000; display: none; }
+        .btn-launch { padding: 20px 40px; background: #f00; color: #fff; border: none; font-weight: bold; cursor: pointer; border-radius: 5px; font-size: 18px; }
+        #status { margin-top: 20px; color: #0f0; font-family: monospace; font-size: 14px; text-align: center; max-width: 90%; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="status">SISTEMA V6 INICIALIZADO</div>
+        <button class="btn-launch" id="start-button">CARGAR JUEGO V6</button>
+        <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+    </div>
+
+    <script src="browserfs.min.js"></script>
+    <script type="text/javascript">
+        window.showElement = function(id) { 
+            var el = document.getElementById(id); 
+            if (el) el.style.display = 'block'; 
+        };
+        window.hideElement = function(id) { 
+            var el = document.getElementById(id); 
+            if (el) el.style.display = 'none'; 
+        };
+
+        var Module = {
+            canvas: document.getElementById('canvas'),
+            arguments: ['-dev', '3', '-log', '-game', 'cstrike'], 
+            // ESCÁNER DE CARGA: Muestra lo que pasa internamente en el status
+            print: function(text) { 
+                console.log(text);
+                var status = document.getElementById('status');
+                // Si el motor está cargando archivos, lo mostramos en pantalla
+                if (text.toLowerCase().includes('load') || text.toLowerCase().includes('executing')) {
+                    status.innerHTML = "CARGANDO: " + text;
+                }
+            },
+            printErr: function(text) {
+                console.error(text);
+                if (text.includes('couldnd\'t open')) {
+                    document.getElementById('status').innerHTML = "ERROR: Faltan archivos en el index.json";
+                }
+            },
+            setStatus: function(text) { 
+                document.getElementById('status').innerHTML = text; 
+            },
+            locateFile: function(path) {
+                if(path.endsWith('.mem')) return "./xash.html.mem";
+                return path;
+            }
+        };
+
+        document.getElementById('start-button').onclick = function() {
+            this.style.display = 'none';
+            window.showElement('canvas');
+            
+            Module.setStatus("Buscando carpetas valve y cstrike...");
+
+            BrowserFS.install(window);
+            BrowserFS.configure({
+                fs: "MountableFileSystem",
+                options: {
+                    // Montamos AMBAS carpetas con sus mapas actualizados
+                    "/cstrike": { fs: "XmlHttpRequest", options: { baseUrl: "./cstrike/", index: "index.json" } },
+                    "/valve": { fs: "XmlHttpRequest", options: { baseUrl: "./valve/", index: "index.json" } },
+                    "/": { fs: "XmlHttpRequest", options: { baseUrl: "./", index: "index.json" } }
+                }
+            }, function(e) {
+                if (e) {
+                    Module.setStatus("Error de configuración FS: " + e);
+                    return console.error(e);
+                }
+                
+                Module.setStatus("Iniciando Motor Xash3D...");
+                var s = document.createElement('script');
+                s.src = "xash.js"; 
+                document.body.appendChild(s);
+            });
+        };
+    </script>
+</body>
+</html>
